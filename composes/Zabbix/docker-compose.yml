@@ -1,0 +1,91 @@
+version: "3.1"
+
+services:
+  postgres:
+    image: postgres:16-bullseye
+    restart: always
+    networks:
+      br-lab:
+        ipv4_address: 172.10.10.118
+    #    ports:
+    #      - "5432:5432"
+    volumes:
+      - ./database:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbixdatabase
+      - POSTGRES_DB=zabbix
+
+  server:
+    image: zabbix/zabbix-server-pgsql:ubuntu-7.0-latest
+    restart: always
+    networks:
+      br-lab:
+        ipv4_address: 172.10.10.115
+    ports:
+      - "10051:10051"
+    #volumes:
+    #  - ./server-conf:/etc/zabbix/
+    #  - ./scripts:/usr/lib/zabbix/alertscripts
+    environment:
+      - DB_SERVER_HOST=postgres
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbixdatabase
+    #      - ZBX_CACHESIZE=2G
+    #      - ZBX_STARTPOLLERS=15
+    #      - ZBX_STARTIPMIPOLLERS=1
+    #      - ZBX_STARTCONNECTORS=5
+    #      - ZBX_STARTPREPROCESSORS=8
+    #      - ZBX_STARTPOLLERSUNREACHABLE=5
+    #      - ZBX_STARTTRAPPERS=30
+    #      - ZBX_STARTPINGERS=5
+    #      - ZBX_STARTDISCOVERERS=5
+    #      - ZBX_STARTHISTORYPOLLERS=5
+    #      - ZBX_STARTHTTPPOLLERS=5
+    #      - ZBX_STARTODBCPOLLERS=5
+    depends_on:
+      - postgres
+
+  frontend:
+    image: zabbix/zabbix-web-apache-pgsql:ubuntu-7.0-latest
+    restart: always
+    networks:
+      br-lab:
+        ipv4_address: 172.10.10.116
+    ports:
+      - "880:8080"
+    #      - "443:8443"
+    #    volumes:
+    #      - ./web:/etc/apache2/
+    #      - ./web-conf:/etc/zabbix/
+    environment:
+      - DB_SERVER_HOST=postgres
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbixdatabase
+      - PHP_TZ=America/Brasilia
+      - ZBX_SERVER_HOST=server
+    depends_on:
+      - postgres
+
+  agent:
+    image: zabbix/zabbix-agent:ubuntu-7.0-latest
+    user: root
+    restart: always
+    privileged: true
+    networks:
+      br-lab:
+        ipv4_address: 172.10.10.117
+    #    volumes:
+    #      - ./agent-conf:/etc/zabbix/
+    ports:
+      - "10050:10050"
+    environment:
+      - ZBX_HOSTNAME=Zabbix server
+      - ZBX_SERVER_HOST=172.10.10.117
+      - ZBX_PASSIVESERVERS=server
+    depends_on:
+      - server
+
+networks:
+  br-lab:
+    external: true

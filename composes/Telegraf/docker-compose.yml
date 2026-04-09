@@ -1,0 +1,68 @@
+version: "3"
+services:
+  grafana:
+    image: grafana/grafana:latest
+    restart: always
+    networks:
+      br-lab:
+        ipv4_address: 172.10.10.111
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./grafana-provisioning/:/etc/grafana/provisioning
+    depends_on:
+      - influxdb
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+  influxdb:
+    image: influxdb:1.8
+    restart: always
+    networks:
+      br-lab:
+        ipv4_address: 172.10.10.112
+#    ports:
+#      - '8086:8086'
+    environment:
+      - INFLUXDB_DB=telemetry
+      - INFLUXDB_USER=admin
+      - INFLUXDB_PASSWORD=admin
+      - INFLUXDB_ADMIN_ENABLED=true
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=admin
+  chronograf:
+    image: chronograf:latest
+    networks:
+      br-lab:
+        ipv4_address: 172.10.10.113
+    ports:
+      - '8888:8888'
+    depends_on:
+      - influxdb
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_USERNAME=admin
+      - INFLUXDB_PASSWORD=admin
+  telegraf:
+    build: .
+    restart: always
+#    ports:
+#      - '57100:57100'
+#      - '57500:57500'
+    networks:
+      br-lab:
+        ipv4_address: 172.10.10.114
+    environment:
+      HOST_PROC: /rootfs/proc
+      HOST_SYS: /rootfs/sys
+      HOST_ETC: /rootfs/etc
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/rootfs/sys:ro
+      - /proc:/rootfs/proc:ro
+      - /etc:/rootfs/etc:ro
+ 
+networks:
+  br-lab:
+    external: true
