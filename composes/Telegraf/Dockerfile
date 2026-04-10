@@ -1,13 +1,14 @@
-FROM telegraf
+FROM telegraf:1.38
 
-# Adicionar repositórios principais do Debian Buster
-RUN echo "deb http://deb.debian.org/debian/ buster main contrib non-free" > /etc/apt/sources.list.d/debian.list && \
-    echo "deb http://deb.debian.org/debian/ buster-updates main contrib non-free" >> /etc/apt/sources.list.d/debian.list && \
-    echo "deb http://security.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list.d/debian.list
-
-# Atualizar pacotes e instalar snmp e snmp-mibs-downloader
 RUN apt-get update && \
-    apt-get install -y snmp snmp-mibs-downloader curl
+    apt-get install -y apt-utils && \
+    # Habilitar repositório non-free e instalar os pacotes necessários para SNMP e download de MIBs
+    echo "deb http://deb.debian.org/debian bookworm main contrib non-free" > /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian bookworm-updates main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y snmp snmp-mibs-downloader curl && \
+    rm -rf /var/lib/apt/lists/*
 
 # Definindo o diretório para os MIBs
 ENV MIB_DIR="/usr/share/snmp/mibs"
